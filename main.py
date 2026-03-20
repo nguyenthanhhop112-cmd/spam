@@ -205,12 +205,12 @@ async def start_reply_handler(client):
             # 2. Bỏ qua tin nhắn do chính dàn clone của mình gửi (tránh tự rep nhau)
             if event.out: return
             
-            # 3. Kiểm tra Cooldown: Chỉ rep 1 người 1 lần mỗi 5 phút (300 giây)
+            # 3. Kiểm tra Cooldown: Giảm xuống còn 5 giây để rep liên tục thay vì 300 giây
             current_time = time.time()
             user_id = event.sender_id
             if user_id in replied_users_cooldown:
-                if current_time - replied_users_cooldown[user_id] < 300:
-                    return # Chưa đủ 5 phút, bỏ qua không rep
+                if current_time - replied_users_cooldown[user_id] < 5:
+                    return # Tránh lỗi rep đè trong cùng 1-2 giây, nhưng 5s sau có thể rep tiếp
             
             # 4. Bỏ qua nếu tin nhắn của họ có chứa Link/URL (100% là bot spam khác)
             if event.message.entities:
@@ -235,7 +235,7 @@ async def start_reply_handler(client):
                 # Cập nhật thời gian đã rep user này vào từ điển
                 replied_users_cooldown[user_id] = time.time()
                 
-                await asyncio.sleep(random.randint(3, 8))
+                await asyncio.sleep(1) # Rút ngắn để trả lời ngay lập tức (1 giây)
                 try: await event.reply(f"🤖 {get_ad_msg()}")
                 except: pass
 
@@ -270,8 +270,8 @@ async def run_spam_loop():
                     last_messages[m_key] = sent.id
                 except FloodWaitError as e: await asyncio.sleep(e.seconds)
                 except: pass
-            await asyncio.sleep(random.randint(100, 180)) # Giãn cách để tránh ban
-        await asyncio.sleep(300)
+            await asyncio.sleep(5) # Đẩy tốc độ spam giữa các nhóm lên nhanh (5 giây/nhóm)
+        await asyncio.sleep(120) # Spam vòng mới sau đúng 2 phút (120 giây)
 
 # --- KHỞI CHẠY ---
 async def main():
@@ -286,4 +286,4 @@ if __name__ == "__main__":
     except:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
-      
+                    
